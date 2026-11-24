@@ -1,24 +1,30 @@
 import allure
 
-from scooter_api import (
-    COURIER_DELETE_NOT_FOUND,
-    NONEXISTENT_ID,
-    ROUTE_NOT_FOUND,
-    assert_error,
-    assert_ok,
-)
+from data import COURIER_DELETE_NOT_FOUND, NONEXISTENT_ID, OK_RESPONSE, ROUTE_NOT_FOUND
 
 
 @allure.suite("Удаление курьера")
 class TestCourierDelete:
     @allure.title("Удаление существующего курьера возвращает ok")
-    def test_delete_existing_courier(self, api, courier_id):
-        assert_ok(api.delete_courier(courier_id))
+    def test_delete_existing_courier(self, api, registered_courier):
+        with allure.step("Удалить курьера по его ID"):
+            response = api.delete_courier(registered_courier["id"])
+        with allure.step("Проверить код 200 и тело ответа ok: true"):
+            assert response.status_code == 200
+            assert response.json() == OK_RESPONSE
 
     @allure.title("Удаление без ID курьера возвращает ошибку")
     def test_delete_courier_without_id(self, api):
-        assert_error(api.delete_courier(), 404, ROUTE_NOT_FOUND)
+        with allure.step("Отправить запрос на удаление без ID"):
+            response = api.delete_courier()
+        with allure.step("Проверить код 404 и сообщение об ошибке"):
+            assert response.status_code == 404
+            assert response.json()["message"] == ROUTE_NOT_FOUND
 
     @allure.title("Удаление несуществующего курьера возвращает ошибку")
     def test_delete_nonexistent_courier(self, api):
-        assert_error(api.delete_courier(NONEXISTENT_ID), 404, COURIER_DELETE_NOT_FOUND)
+        with allure.step("Удалить курьера с несуществующим ID"):
+            response = api.delete_courier(NONEXISTENT_ID)
+        with allure.step("Проверить код 404 и сообщение об ошибке"):
+            assert response.status_code == 404
+            assert response.json()["message"] == COURIER_DELETE_NOT_FOUND

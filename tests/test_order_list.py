@@ -1,22 +1,26 @@
 import allure
 
-from scooter_api import assert_json_response, assert_ok
+from data import OK_RESPONSE
 
 
 @allure.suite("Список заказов")
 class TestOrderList:
     @allure.title("Тело ответа содержит список заказов")
     def test_list_orders_returns_list(self, api):
-        body = assert_json_response(api.list_orders(), 200)
-        orders = body["orders"]
-        assert isinstance(orders, list)
-        assert all(isinstance(order, dict) for order in orders)
+        with allure.step("Получить список заказов"):
+            response = api.list_orders()
+        with allure.step("Проверить код 200 и список заказов в ответе"):
+            assert response.status_code == 200
+            assert isinstance(response.json()["orders"], list)
 
     @allure.title("Список заказов курьера содержит принятый им заказ")
-    def test_list_orders_for_courier(self, api, courier_id, created_order):
-        assert_ok(api.accept_order(created_order["id"], courier_id))
-
-        body = assert_json_response(api.list_orders(courier_id), 200)
-        orders = body["orders"]
-        assert isinstance(orders, list)
-        assert any(order["id"] == created_order["id"] for order in orders)
+    def test_list_orders_for_courier(self, api, registered_courier, created_order):
+        with allure.step("Принять заказ курьером"):
+            accept_response = api.accept_order(created_order["id"], registered_courier["id"])
+        with allure.step("Получить список заказов курьера"):
+            response = api.list_orders(registered_courier["id"])
+        with allure.step("Проверить, что принятый заказ есть в списке курьера"):
+            assert accept_response.json() == OK_RESPONSE
+            assert response.status_code == 200
+            order_ids = [order["id"] for order in response.json()["orders"]]
+            assert created_order["id"] in order_ids
